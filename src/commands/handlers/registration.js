@@ -10,7 +10,7 @@ const _ = {
 };
 
 const handlers = {
-    RPL_WELCOME: function(command, handler) {
+    RPL_WELCOME: function (command, handler) {
         const nick = command.params[0];
 
         // Get the server name so we know which messages are by the server in future
@@ -31,7 +31,7 @@ const handlers = {
         });
     },
 
-    RPL_YOURHOST: function(command, handler) {
+    RPL_YOURHOST: function (command, handler) {
         // Your host is ircd.network.org, running version InspIRCd-2.0
         const param = command.params[1] || '';
         const m = param.match(/running version (.*)$/);
@@ -42,7 +42,7 @@ const handlers = {
         }
     },
 
-    RPL_ISUPPORT: function(command, handler) {
+    RPL_ISUPPORT: function (command, handler) {
         const options = command.params;
         let i;
         let option;
@@ -100,7 +100,7 @@ const handlers = {
         });
     },
 
-    CAP: function(command, handler) {
+    CAP: function (command, handler) {
         let request_caps = [];
         const capability_values = Object.create(null);
 
@@ -109,7 +109,7 @@ const handlers = {
         const capabilities = command.params[command.params.length - 1]
             .replace(/(?:^| )[-~=]/, '')
             .split(' ')
-            .map(function(cap) {
+            .map(function (cap) {
                 // CAPs in 3.2 may be in the form of CAP=VAL. So seperate those out
                 const sep = cap.indexOf('=');
                 if (sep === -1) {
@@ -160,91 +160,91 @@ const handlers = {
         want = _.uniq(want.concat(handler.request_extra_caps));
 
         switch (command.params[1]) {
-        case 'LS':
-            // Compute which of the available capabilities we want and request them
-            request_caps = _.intersection(capabilities, want);
-            if (request_caps.length > 0) {
-                handler.network.cap.requested = handler.network.cap.requested.concat(request_caps);
-            }
-
-            // CAP 3.2 multline support. Only send our CAP requests on the last CAP LS
-            // line which will not have * set for params[2]
-            if (command.params[2] !== '*') {
-                if (handler.network.cap.requested.length > 0) {
-                    handler.network.cap.negotiating = true;
-                    handler.connection.write('CAP REQ :' + handler.network.cap.requested.join(' '));
-                } else {
-                    handler.connection.write('CAP END');
-                    handler.network.cap.negotiating = false;
+            case 'LS':
+                // Compute which of the available capabilities we want and request them
+                request_caps = _.intersection(capabilities, want);
+                if (request_caps.length > 0) {
+                    handler.network.cap.requested = handler.network.cap.requested.concat(request_caps);
                 }
-            }
-            break;
-        case 'ACK':
-            if (capabilities.length > 0) {
-                // Update list of enabled capabilities
-                handler.network.cap.enabled = _.uniq(handler.network.cap.enabled.concat(capabilities));
 
-                // Update list of capabilities we would like to have but that aren't enabled
-                handler.network.cap.requested = _.difference(
-                    handler.network.cap.requested,
-                    capabilities
-                );
-            }
-            if (handler.network.cap.negotiating) {
-                if (handler.network.cap.isEnabled('sasl')) {
-                    if (typeof handler.connection.options.sasl_mechanism === 'string') {
-                        handler.connection.write('AUTHENTICATE ' + handler.connection.options.sasl_mechanism);
+                // CAP 3.2 multline support. Only send our CAP requests on the last CAP LS
+                // line which will not have * set for params[2]
+                if (command.params[2] !== '*') {
+                    if (handler.network.cap.requested.length > 0) {
+                        handler.network.cap.negotiating = true;
+                        handler.connection.write('CAP REQ :' + handler.network.cap.requested.join(' '));
                     } else {
-                        handler.connection.write('AUTHENTICATE PLAIN');
+                        handler.connection.write('CAP END');
+                        handler.network.cap.negotiating = false;
                     }
-                } else if (handler.network.cap.requested.length === 0) {
-                    // If all of our requested CAPs have been handled, end CAP negotiation
+                }
+                break;
+            case 'ACK':
+                if (capabilities.length > 0) {
+                    // Update list of enabled capabilities
+                    handler.network.cap.enabled = _.uniq(handler.network.cap.enabled.concat(capabilities));
+
+                    // Update list of capabilities we would like to have but that aren't enabled
+                    handler.network.cap.requested = _.difference(
+                        handler.network.cap.requested,
+                        capabilities
+                    );
+                }
+                if (handler.network.cap.negotiating) {
+                    if (handler.network.cap.isEnabled('sasl')) {
+                        if (typeof handler.connection.options.sasl_mechanism === 'string') {
+                            handler.connection.write('AUTHENTICATE ' + handler.connection.options.sasl_mechanism);
+                        } else {
+                            handler.connection.write('AUTHENTICATE PLAIN');
+                        }
+                    } else if (handler.network.cap.requested.length === 0) {
+                        // If all of our requested CAPs have been handled, end CAP negotiation
+                        handler.connection.write('CAP END');
+                        handler.network.cap.negotiating = false;
+                    }
+                }
+                break;
+            case 'NAK':
+                if (capabilities.length > 0) {
+                    handler.network.cap.requested = _.difference(
+                        handler.network.cap.requested,
+                        capabilities
+                    );
+                }
+
+                // If all of our requested CAPs have been handled, end CAP negotiation
+                if (handler.network.cap.negotiating && handler.network.cap.requested.length === 0) {
                     handler.connection.write('CAP END');
                     handler.network.cap.negotiating = false;
                 }
-            }
-            break;
-        case 'NAK':
-            if (capabilities.length > 0) {
-                handler.network.cap.requested = _.difference(
-                    handler.network.cap.requested,
-                    capabilities
-                );
-            }
-
-            // If all of our requested CAPs have been handled, end CAP negotiation
-            if (handler.network.cap.negotiating && handler.network.cap.requested.length === 0) {
-                handler.connection.write('CAP END');
-                handler.network.cap.negotiating = false;
-            }
-            break;
-        case 'LIST':
-            // should we do anything here?
-            break;
-        case 'NEW':
-            // Request any new CAPs that we want but haven't already enabled
-            request_caps = [];
-            for (let i = 0; i < capabilities.length; i++) {
-                const cap = capabilities[i];
-                if (
-                    want.indexOf(cap) > -1 &&
+                break;
+            case 'LIST':
+                // should we do anything here?
+                break;
+            case 'NEW':
+                // Request any new CAPs that we want but haven't already enabled
+                request_caps = [];
+                for (let i = 0; i < capabilities.length; i++) {
+                    const cap = capabilities[i];
+                    if (
+                        want.indexOf(cap) > -1 &&
                         request_caps.indexOf(cap) === -1 &&
                         !handler.network.cap.isEnabled(cap)
-                ) {
-                    handler.network.cap.requested.push(cap);
-                    request_caps.push(cap);
+                    ) {
+                        handler.network.cap.requested.push(cap);
+                        request_caps.push(cap);
+                    }
                 }
-            }
 
-            handler.connection.write('CAP REQ :' + request_caps.join(' '));
-            break;
-        case 'DEL':
-            // Update list of enabled capabilities
-            handler.network.cap.enabled = _.difference(
-                handler.network.cap.enabled,
-                capabilities
-            );
-            break;
+                handler.connection.write('CAP REQ :' + request_caps.join(' '));
+                break;
+            case 'DEL':
+                // Update list of enabled capabilities
+                handler.network.cap.enabled = _.difference(
+                    handler.network.cap.enabled,
+                    capabilities
+                );
+                break;
         }
 
         handler.emit('cap ' + command.params[1].toLowerCase(), {
@@ -253,7 +253,7 @@ const handlers = {
         });
     },
 
-    AUTHENTICATE: function(command, handler) {
+    AUTHENTICATE: function (command, handler) {
         if (command.params[0] !== '+') {
             if (handler.network.cap.negotiating) {
                 handler.connection.write('CAP END');
@@ -269,10 +269,21 @@ const handlers = {
             return;
         }
 
+        let auth_str;
         const saslAuth = getSaslAuth(handler);
-        const auth_str = saslAuth.account + '\0' +
-            saslAuth.account + '\0' +
-            saslAuth.password;
+
+        if (handler.connection.options.sasl_mechanism === 'XOAUTH2') {
+            auth_str = `user=${saslAuth.account}` + '\x01' +
+                `auth=${saslAuth.token}` + '\x01' +
+                '\x01';
+        }
+
+        if (!handler.connection.options.sasl_mechanism || handler.connection.options.sasl_mechanism === 'PLAIN') {
+            auth_str = saslAuth.account + '\0' +
+                saslAuth.account + '\0' +
+                saslAuth.password;
+        }
+
         const b = Buffer.from(auth_str, 'utf8');
         const b64 = b.toString('base64');
 
@@ -289,7 +300,7 @@ const handlers = {
         }
     },
 
-    RPL_LOGGEDIN: function(command, handler) {
+    RPL_LOGGEDIN: function (command, handler) {
         if (handler.network.cap.negotiating === true) {
             handler.connection.write('CAP END');
             handler.network.cap.negotiating = false;
@@ -319,7 +330,7 @@ const handlers = {
         });
     },
 
-    RPL_LOGGEDOUT: function(command, handler) {
+    RPL_LOGGEDOUT: function (command, handler) {
         const mask = Helpers.parseMask(command.params[1]);
 
         // Check if we have a server-time
@@ -344,28 +355,28 @@ const handlers = {
         });
     },
 
-    RPL_SASLLOGGEDIN: function(command, handler) {
+    RPL_SASLLOGGEDIN: function (command, handler) {
         if (handler.network.cap.negotiating === true) {
             handler.connection.write('CAP END');
             handler.network.cap.negotiating = false;
         }
     },
 
-    ERR_SASLNOTAUTHORISED: function(command, handler) {
+    ERR_SASLNOTAUTHORISED: function (command, handler) {
         if (handler.network.cap.negotiating) {
             handler.connection.write('CAP END');
             handler.network.cap.negotiating = false;
         }
     },
 
-    ERR_SASLABORTED: function(command, handler) {
+    ERR_SASLABORTED: function (command, handler) {
         if (handler.network.cap.negotiating) {
             handler.connection.write('CAP END');
             handler.network.cap.negotiating = false;
         }
     },
 
-    ERR_SASLALREADYAUTHED: function(command, handler) {
+    ERR_SASLALREADYAUTHED: function (command, handler) {
         // noop
     }
 };
@@ -380,7 +391,8 @@ function getSaslAuth(handler) {
         // An account username has been given, use it for SASL auth
         return {
             account: options.account.account,
-            password: options.account.password || '',
+            password: options.account.password,
+            token: options.account.token
         };
     } else if (options.account) {
         // An account object existed but without auth credentials
@@ -398,7 +410,7 @@ function getSaslAuth(handler) {
 }
 
 module.exports = function AddCommandHandlers(command_controller) {
-    _.each(handlers, function(handler, handler_command) {
+    _.each(handlers, function (handler, handler_command) {
         command_controller.addHandler(handler_command, handler);
     });
 };

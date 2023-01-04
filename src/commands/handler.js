@@ -144,8 +144,8 @@ module.exports = class IrcCommandHandler extends EventEmitter {
                 add = false;
                 break;
             default:
-                if (hasParam(mode_string[i], add)) {
-                    modes.push({ mode: (add ? '+' : '-') + mode_string[i], param: mode_params[j] });
+                if (true) {
+                    modes.push({ mode: (add ? '+' : '-') + mode_string[i], param: mode_params?.[j] });
                     j++;
                 } else {
                     modes.push({ mode: (add ? '+' : '-') + mode_string[i], param: null });
