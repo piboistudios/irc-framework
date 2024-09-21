@@ -415,7 +415,7 @@ module.exports = class IrcClient extends EventEmitter {
         let args;
 
         if (input.constructor === Array) {
-            args = input;
+            args = input.filter(i => i !== undefined);
         } else {
             args = Array.prototype.slice.call(arguments, 0);
         }

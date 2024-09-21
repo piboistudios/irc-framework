@@ -10,6 +10,10 @@ const irc_numerics = require('./numerics');
 const IrcCommand = require('./command');
 
 module.exports = class IrcCommandHandler extends EventEmitter {
+    /**
+     * 
+     * @param {import('../client')} client 
+     */
     constructor(client) {
         super();
 

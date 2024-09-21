@@ -175,7 +175,7 @@ module.exports = function AddCommandHandlers(command_controller) {
                     event_obj.target_group = parsed.target_group;
                 }
             }
-
+            if (command.tags) event_obj.tags = command.tags;
             handler.emit(generic.event, event_obj);
         });
     });

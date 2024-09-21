@@ -26,9 +26,10 @@ module.exports = class IrcMessage {
 
         parts.push(this.command);
 
-        if (this.params.length > 0) {
-            this.params.forEach((param, idx) => {
-                if (idx === this.params.length - 1 && (param.indexOf(' ') > -1 || param[0] === ':')) {
+        const params = this.params.filter(Boolean);
+        if (params.length > 0) {
+            params.forEach((param, idx) => {
+                if (idx === params.length - 1 && (param.indexOf(' ') > -1 || param[0] === ':')) {
                     parts.push(':' + param);
                 } else {
                     parts.push(param);
